@@ -1,3 +1,3 @@
-# Write XLS
+# Convert XLS
 
-Library to save data in `.xls`` format.
+Library to input/output data in `.xls` format.
