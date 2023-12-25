@@ -1,11 +1,13 @@
-import io
+import mimetypes
 import fastapi
 from fastapi import File, UploadFile
 from fastapi.responses import StreamingResponse
-import pandas as pd
 
+from . import _io
 
 app = fastapi.FastAPI()
+
+mimetypes.add_type('text/csv', '.csv')
 
 
 @app.get('/')
@@ -13,16 +15,15 @@ async def index() -> str:
     return 'hello'
 
 
-@app.post("/xlsx")
-def upload_file(file: UploadFile = File(...)) -> StreamingResponse:
+@app.post("/convert")
+def upload_file(
+    fromType: _io.FileType, toType: _io.FileType, file: UploadFile = File(...)
+) -> StreamingResponse:
     contents = file.file.read()
-    df = pd.read_csv(io.BytesIO(contents))
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlwt') as writer:
-        df.to_excel(writer, index=False)
+    converted = _io.convert(fromType, toType, contents)
 
     return StreamingResponse(
-        io.BytesIO(buffer.getvalue()),
-        media_type='application/vnd.ms-excel',
-        headers={"Content-Disposition": "attachment; filename=data.xls"},
+        converted,
+        media_type=mimetypes.types_map[f'.{toType.value}'],
+        headers={"Content-Disposition": f"attachment; filename=data.{toType}"},
     )
